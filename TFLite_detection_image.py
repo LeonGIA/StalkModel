@@ -158,6 +158,11 @@ if ('StatefulPartitionedCall' in outname): # This is a TF2 model
 else: # This is a TF1 model
     boxes_idx, classes_idx, scores_idx = 0, 1, 2
 
+next_stalk_index = 1
+previous_stalk_labels = []
+current_stalk_labels = []
+current_stalk_y_values = []
+
 # Loop over every image and perform detection
 for image_path in images:
 
@@ -193,6 +198,8 @@ for image_path in images:
             xmin = int(max(1,(boxes[i][1] * imW)))
             ymax = int(min(imH,(boxes[i][2] * imH)))
             xmax = int(min(imW,(boxes[i][3] * imW)))
+
+            current_stalk_y_values.append((ymin + ymax) / 2)
             
             cv2.rectangle(image, (xmin,ymin), (xmax,ymax), (10, 255, 0), 2)
 
@@ -205,6 +212,27 @@ for image_path in images:
             cv2.putText(image, label, (xmin, label_ymin-7), cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0, 0, 0), 2) # Draw label text
 
             detections.append([object_name, scores[i], xmin, ymin, xmax, ymax])
+
+    # sort y coordinate list of current stalks
+    current_stalk_y_values.sort()
+
+    # increase stalk index if a stalk has been added
+    if (len(current_stalk_y_values) > len(previous_stalk_labels)):
+        for i in range(len(current_stalk_y_values)):
+            current_stalk_labels.append([next_stalk_index - i, current_stalk_y_values[i]])
+        next_stalk_index += 1
+    # maintain current labeling if a stalk has been removed
+    else:
+        for i in range(len(current_stalk_y_values)):
+            current_stalk_labels.append([next_stalk_index - 1 - i, current_stalk_y_values[i]])
+
+    # add stalk number labels to image
+    for i in range(len(current_stalk_labels)):
+        cv2.putText(image, str(current_stalk_labels[i][0]), (30, int(current_stalk_labels[i][1])), cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0, 0, 0), 2) # Draw stalk number label
+
+    current_stalk_y_values = []
+    previous_stalk_labels = current_stalk_labels
+    current_stalk_labels = []
 
     # All the results have been drawn on the image, now display the image
     if show_results:
