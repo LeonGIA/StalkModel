@@ -236,7 +236,8 @@ for image_path in images:
 
     # All the results have been drawn on the image, now display the image
     if show_results:
-        cv2.imshow('Object detector', image)
+        resized_image = cv2.resize(image, (1024, 768))  # Resize image to fit screen
+        cv2.imshow('Object detector', resized_image)
         
         # Press any key to continue to next image, or press 'q' to quit
         if cv2.waitKey(0) == ord('q'):
