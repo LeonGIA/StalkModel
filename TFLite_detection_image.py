@@ -200,6 +200,11 @@ for image_path in images:
             xmax = int(min(imW,(boxes[i][3] * imW)))
 
             current_stalk_y_values.append((ymin + ymax) / 2)
+
+            # WRITE STALK Y-COORD TO FILE
+            f = open("locations.txt", "a")
+            f.write(str((ymin + ymax) / 2) + "\n")
+            f.close()
             
             cv2.rectangle(image, (xmin,ymin), (xmax,ymax), (10, 255, 0), 2)
 
