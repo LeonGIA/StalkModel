@@ -1,5 +1,5 @@
 # StalkModel
-# ALL CREDIT GOES TO EVAN JURAS WHO HOSTED THE ORIGINAL CODE.
+# CREDIT GOES TO EVAN JURAS WHO HOSTED THE ORIGINAL CODE.
 # WE HAVE MODIFIED IT TO SUPPORT OUR NEEDS.
 
 
@@ -9,6 +9,9 @@ NOTE: The basis for this model originates from a Jupyter Notebook project on Goo
 
 
 We adapted the Notebook project to one of our own personal devices as the Google-provided computing resources was not sufficient for the project's needs. The images were annotated with the LabelImg software.
+
+
+NOTE: The file sizes for the images the model was trained on in addition to the training checkpoints/data were too large to upload to GitHub. They can be provided upon request.
 
 
 Running the detection model:
@@ -21,7 +24,7 @@ NOTE: We recommend installing Anaconda and creating a virtual python environment
 	
 2.) Activate the environment with
 
-	cond activate <environment_name>
+	conda activate <environment_name>
 	
 3.) Now we will install the necessary TensorFlow packages
 
