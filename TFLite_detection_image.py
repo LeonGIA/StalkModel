@@ -31,7 +31,7 @@ parser.add_argument('--graph', help='Name of the .tflite file, if different than
 parser.add_argument('--labels', help='Name of the labelmap file, if different than labelmap.txt',
                     default='labelmap.txt')
 parser.add_argument('--threshold', help='Minimum confidence threshold for displaying detected objects',
-                    default=0.5)
+                    default=0.6)
 parser.add_argument('--image', help='Name of the single image to perform detection on. To run detection on multiple images, use --imagedir',
                     default=None)
 parser.add_argument('--imagedir', help='Name of the folder containing images to perform detection on. Folder must contain only images.',
@@ -158,6 +158,15 @@ if ('StatefulPartitionedCall' in outname): # This is a TF2 model
 else: # This is a TF1 model
     boxes_idx, classes_idx, scores_idx = 0, 1, 2
 
+# INIT VARS -----------------------------
+
+current_stalk_index = 1
+counter = 0
+
+BUFFER_ZONE = 130.0
+
+# END INIT VARS -------------------------
+
 # Loop over every image and perform detection
 for image_path in images:
 
@@ -193,6 +202,10 @@ for image_path in images:
             xmin = int(max(1,(boxes[i][1] * imW)))
             ymax = int(min(imH,(boxes[i][2] * imH)))
             xmax = int(min(imW,(boxes[i][3] * imW)))
+
+            # Write stalk y-coordinate to file
+            with open("locations.txt", "a") as f:
+                f.write(str((ymin + ymax) / 2) + "\n")
             
             cv2.rectangle(image, (xmin,ymin), (xmax,ymax), (10, 255, 0), 2)
 
@@ -206,12 +219,62 @@ for image_path in images:
 
             detections.append([object_name, scores[i], xmin, ymin, xmax, ymax])
 
+
+    tracked_objects = {}
+    with open("locations.txt", "r") as f:
+        lines = [line.rstrip() for line in f]
+
+    # First detection
+    if len(lines) <= 1:
+        lines[0] = lines[0] + ", " + str(current_stalk_index)
+        current_stalk_index += 1
+
+    # Fill out tracked_ojects
+    for line in lines:
+        # If already labeled, move on
+        if line.find(",") != -1:
+            y_value, label_id = map(str, line.split(","))
+            tracked_objects[y_value.strip()] = label_id.strip()
+        # If not labeled, check to see if any nearby stalks already labeled
+        else:
+            nearLabel = False
+            # If nearby stalk is labeled, keep label
+            curr_y = float(line)
+            for pair in lines:
+                if pair.find(",") != -1:
+                    prev_y, prev_label = map(str, pair.split(","))
+                    if abs(curr_y - float(prev_y)) < BUFFER_ZONE:
+                        tracked_objects[line] = prev_label.strip()
+                        nearLabel = True
+                        break
+            # Else, increment label
+            if not nearLabel:
+                tracked_objects[line] = str(current_stalk_index).strip()
+                current_stalk_index += 1
+
+    # Rewrite locations file with updated IDs
+    with open("locations.txt", "w") as f:
+        for y_value, label_id in tracked_objects.items():
+            f.write(f"{y_value}, {label_id.strip()}\n")
+
+    # Reset counter if needed
+    counter += 1
+    if counter > 5:
+        key1 = list(tracked_objects)[-1]
+        key2 = list(tracked_objects)[-2]
+        with open("locations.txt", "w") as f:
+            f.write(f"{key1}, {tracked_objects[key1].strip()}\n")
+            f.write(f"{key2}, {tracked_objects[key2].strip()}\n")
+        counter = 0
+
     # All the results have been drawn on the image, now display the image
     if show_results:
-        cv2.imshow('Object detector', image)
+        resized_image = cv2.resize(image, (1024, 768))  # Resize image to fit screen
+        cv2.imshow('Object detector', resized_image)
         
         # Press any key to continue to next image, or press 'q' to quit
         if cv2.waitKey(0) == ord('q'):
+            open("locations.txt", "w")
             break
 
     # Save the labeled image to results folder if desired
